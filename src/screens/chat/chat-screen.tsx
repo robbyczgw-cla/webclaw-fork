@@ -389,7 +389,7 @@ export function ChatScreen({
         message: body,
         thinking: 'low',
         idempotencyKey: crypto.randomUUID(),
-        model: model || undefined,
+        // model: model || undefined, // TODO: Gateway doesnt support this yet
       }),
     })
       .then(async (res) => {
