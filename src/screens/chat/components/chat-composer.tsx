@@ -11,6 +11,7 @@ import {
 } from '@/components/prompt-kit/prompt-input'
 import { Button } from '@/components/ui/button'
 import { ModelSelector } from '@/components/model-selector'
+import { CommandHelp } from '@/components/command-help'
 
 type ChatComposerProps = {
   onSubmit: (value: string, helpers: ChatComposerHelpers) => void
@@ -95,7 +96,10 @@ function ChatComposerComponent({
           inputRef={setPromptRef}
         />
         <PromptInputActions className="justify-between px-3">
-          <ModelSelector onModelChange={setSelectedModel} />
+          <div className="flex items-center gap-1">
+            <ModelSelector onModelChange={setSelectedModel} />
+            <CommandHelp onCommandSelect={(cmd) => setValue(cmd + ' ')} />
+          </div>
           <PromptInputAction tooltip="Send message">
             <Button
               onClick={handleSubmit}
