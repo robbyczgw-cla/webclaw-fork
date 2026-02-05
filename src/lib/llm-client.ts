@@ -2,7 +2,7 @@
  * OpenAI API Client for LLM-enhanced features
  * 
  * Used for generating smart session titles and contextual follow-up suggestions.
- * API key is passed from the backend (never exposed to frontend).
+ * Includes automatic model fallback for reliability.
  */
 
 type ChatMessage = {
@@ -38,11 +38,17 @@ export type LlmClientOptions = {
 }
 
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1'
-const DEFAULT_MODEL = 'gpt-4.1-nano'
 const DEFAULT_TIMEOUT_MS = 10000
 
+// Model fallback chain - if one fails, try the next
+const MODEL_FALLBACK_CHAIN = [
+  'gpt-4.1-nano',
+  'gpt-4o-mini', 
+  'gpt-3.5-turbo',
+]
+
 /**
- * Make a chat completion request to OpenAI API
+ * Make a chat completion request to OpenAI API with automatic model fallback
  */
 export async function chatCompletion(
   messages: ChatMessage[],
@@ -51,46 +57,68 @@ export async function chatCompletion(
   const {
     apiKey,
     baseUrl = DEFAULT_BASE_URL,
-    model = DEFAULT_MODEL,
+    model,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxTokens = 100,
   } = options
 
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  // If specific model requested, use only that; otherwise try fallback chain
+  const modelsToTry = model ? [model] : MODEL_FALLBACK_CHAIN
+  let lastError: Error | null = null
 
-  try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: maxTokens,
-        temperature: 0.7,
-      }),
-      signal: controller.signal,
-    })
+  for (const currentModel of modelsToTry) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    clearTimeout(timeoutId)
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          messages,
+          max_tokens: maxTokens,
+          temperature: 0.7,
+        }),
+        signal: controller.signal,
+      })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        // If model not found, try next in chain
+        if (response.status === 404 || errorText.includes('model_not_found')) {
+          console.log(`[llm-client] Model ${currentModel} not available, trying next...`)
+          lastError = new Error(`Model ${currentModel} not found`)
+          continue
+        }
+        throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
+      }
+
+      const data = await response.json() as ChatCompletionResponse
+      const content = data.choices[0]?.message?.content?.trim() || ''
+      if (content) {
+        return content
+      }
+      // Empty response, try next model
+      lastError = new Error(`Model ${currentModel} returned empty response`)
+      continue
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        lastError = new Error('OpenAI API request timed out')
+        continue
+      }
+      lastError = error instanceof Error ? error : new Error(String(error))
+      continue
     }
-
-    const data = await response.json() as ChatCompletionResponse
-    return data.choices[0]?.message?.content?.trim() || ''
-  } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('OpenAI API request timed out')
-    }
-    throw error
   }
+
+  throw lastError || new Error('All models failed')
 }
 
 /**
@@ -139,7 +167,6 @@ Rules:
   )
 
   try {
-    // Parse JSON response, handling potential markdown code blocks
     let jsonStr = response.trim()
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
@@ -149,7 +176,7 @@ Rules:
       return parsed.slice(0, 3).map(String)
     }
   } catch {
-    // If parsing fails, return empty array (will fallback to heuristic)
+    // Fallback to heuristic
   }
   return []
 }
