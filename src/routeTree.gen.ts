@@ -17,6 +17,7 @@ import { Route as ApiSessionsRouteImport } from './routes/api/sessions'
 import { Route as ApiSendRouteImport } from './routes/api/send'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
+import { Route as ApiModelsRouteImport } from './routes/api/models'
 import { Route as ApiHistoryRouteImport } from './routes/api/history'
 import { Route as ApiFollowUpsRouteImport } from './routes/api/follow-ups'
 
@@ -60,6 +61,11 @@ const ApiPathsRoute = ApiPathsRouteImport.update({
   path: '/api/paths',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiModelsRoute = ApiModelsRouteImport.update({
+  id: '/api/models',
+  path: '/api/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHistoryRoute = ApiHistoryRouteImport.update({
   id: '/api/history',
   path: '/api/history',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/new': typeof NewRoute
   '/api/follow-ups': typeof ApiFollowUpsRoute
   '/api/history': typeof ApiHistoryRoute
+  '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/send': typeof ApiSendRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/new': typeof NewRoute
   '/api/follow-ups': typeof ApiFollowUpsRoute
   '/api/history': typeof ApiHistoryRoute
+  '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/send': typeof ApiSendRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/new': typeof NewRoute
   '/api/follow-ups': typeof ApiFollowUpsRoute
   '/api/history': typeof ApiHistoryRoute
+  '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/send': typeof ApiSendRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/api/follow-ups'
     | '/api/history'
+    | '/api/models'
     | '/api/paths'
     | '/api/ping'
     | '/api/send'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/api/follow-ups'
     | '/api/history'
+    | '/api/models'
     | '/api/paths'
     | '/api/ping'
     | '/api/send'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/api/follow-ups'
     | '/api/history'
+    | '/api/models'
     | '/api/paths'
     | '/api/ping'
     | '/api/send'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   NewRoute: typeof NewRoute
   ApiFollowUpsRoute: typeof ApiFollowUpsRoute
   ApiHistoryRoute: typeof ApiHistoryRoute
+  ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
   ApiSendRoute: typeof ApiSendRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPathsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/models': {
+      id: '/api/models'
+      path: '/api/models'
+      fullPath: '/api/models'
+      preLoaderRoute: typeof ApiModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/history': {
       id: '/api/history'
       path: '/api/history'
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewRoute: NewRoute,
   ApiFollowUpsRoute: ApiFollowUpsRoute,
   ApiHistoryRoute: ApiHistoryRoute,
+  ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,
   ApiSendRoute: ApiSendRoute,

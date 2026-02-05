@@ -25,6 +25,10 @@ export const Route = createFileRoute('/api/send')({
           const message = String(body.message ?? '')
           const thinking =
             typeof body.thinking === 'string' ? body.thinking : undefined
+          const model =
+            typeof body.model === 'string' && body.model.trim().length > 0
+              ? body.model.trim()
+              : undefined
 
           if (!message.trim()) {
             return json(
@@ -63,6 +67,7 @@ export const Route = createFileRoute('/api/send')({
             sessionKey,
             message,
             thinking,
+            model,
             deliver: false,
             timeoutMs: 120_000,
             idempotencyKey:

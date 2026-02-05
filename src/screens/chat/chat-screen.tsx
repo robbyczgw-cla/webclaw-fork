@@ -335,7 +335,7 @@ export function ChatScreen({
     }
     setWaitingForResponse(true)
     setPinToTop(true)
-    sendMessage(pending.sessionKey, pending.friendlyId, pending.message, true)
+    sendMessage(pending.sessionKey, pending.friendlyId, pending.message, true, pending.model)
   }, [
     activeFriendlyId,
     activeSessionKey,
@@ -350,6 +350,7 @@ export function ChatScreen({
     friendlyId: string,
     body: string,
     skipOptimistic = false,
+    model?: string,
   ) {
     let optimisticClientId = ''
     if (!skipOptimistic) {
@@ -384,6 +385,7 @@ export function ChatScreen({
         message: body,
         thinking: 'low',
         idempotencyKey: crypto.randomUUID(),
+        model: model || undefined,
       }),
     })
       .then(async (res) => {
@@ -453,6 +455,7 @@ export function ChatScreen({
   const send = useCallback(
     (body: string, helpers: ChatComposerHelpers) => {
       if (body.length === 0) return
+      const model = helpers.model
       helpers.reset()
 
       if (isNewChat) {
@@ -472,6 +475,7 @@ export function ChatScreen({
               friendlyId,
               message: body,
               optimisticMessage,
+              model,
             })
             if (onSessionResolved) {
               onSessionResolved({ sessionKey, friendlyId })
@@ -505,7 +509,7 @@ export function ChatScreen({
 
       const sessionKeyForSend =
         forcedSessionKey || resolvedSessionKey || activeSessionKey
-      sendMessage(sessionKeyForSend, activeFriendlyId, body)
+      sendMessage(sessionKeyForSend, activeFriendlyId, body, false, model)
     },
     [
       activeFriendlyId,

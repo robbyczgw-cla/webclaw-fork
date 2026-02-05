@@ -10,6 +10,7 @@ import {
   PromptInputTextarea,
 } from '@/components/prompt-kit/prompt-input'
 import { Button } from '@/components/ui/button'
+import { ModelSelector } from '@/components/model-selector'
 
 type ChatComposerProps = {
   onSubmit: (value: string, helpers: ChatComposerHelpers) => void
@@ -22,6 +23,7 @@ type ChatComposerProps = {
 type ChatComposerHelpers = {
   reset: () => void
   setValue: (value: string) => void
+  model?: string
 }
 
 function ChatComposerComponent({
@@ -32,6 +34,7 @@ function ChatComposerComponent({
   inputRef: externalInputRef,
 }: ChatComposerProps) {
   const [value, setValue] = useState('')
+  const [selectedModel, setSelectedModel] = useState<string>('')
   const promptRef = useRef<HTMLTextAreaElement | null>(null)
   
   // Sync internal ref with external ref if provided
@@ -70,9 +73,9 @@ function ChatComposerComponent({
     if (disabled) return
     const body = value.trim()
     if (body.length === 0) return
-    onSubmit(body, { reset, setValue: setComposerValue })
+    onSubmit(body, { reset, setValue: setComposerValue, model: selectedModel })
     focusPrompt()
-  }, [disabled, focusPrompt, onSubmit, reset, setComposerValue, value])
+  }, [disabled, focusPrompt, onSubmit, reset, setComposerValue, value, selectedModel])
   const submitDisabled = disabled || value.trim().length === 0
 
   return (
@@ -91,7 +94,8 @@ function ChatComposerComponent({
           placeholder="Type a message…"
           inputRef={setPromptRef}
         />
-        <PromptInputActions className="justify-end px-3">
+        <PromptInputActions className="justify-between px-3">
+          <ModelSelector onModelChange={setSelectedModel} />
           <PromptInputAction tooltip="Send message">
             <Button
               onClick={handleSubmit}

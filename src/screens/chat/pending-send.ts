@@ -5,6 +5,7 @@ export type PendingSendPayload = {
   friendlyId: string
   message: string
   optimisticMessage: GatewayMessage
+  model?: string
 }
 
 let pendingSend: PendingSendPayload | null = null

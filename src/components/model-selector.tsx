@@ -1,0 +1,176 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ArtificialIntelligence02Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import { MenuRoot, MenuTrigger, MenuContent, MenuItem } from '@/components/ui/menu'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+type ModelInfo = {
+  id: string
+  name: string
+  provider?: string
+}
+
+type ModelsResponse = {
+  ok: boolean
+  models: ModelInfo[]
+  defaultModel: string
+}
+
+const STORAGE_KEY = 'opencami-selected-model'
+
+function getStoredModel(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function setStoredModel(modelId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(STORAGE_KEY, modelId)
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+type ModelSelectorProps = {
+  className?: string
+  onModelChange?: (modelId: string) => void
+}
+
+export function ModelSelector({ className, onModelChange }: ModelSelectorProps) {
+  const [models, setModels] = useState<ModelInfo[]>([])
+  const [selectedModel, setSelectedModel] = useState<string>('')
+  const [defaultModel, setDefaultModel] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchModels() {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const response = await fetch('/api/models')
+        if (!response.ok) {
+          throw new Error('Failed to fetch models')
+        }
+
+        const data = (await response.json()) as ModelsResponse
+
+        if (!mounted) return
+
+        if (data.ok && data.models.length > 0) {
+          setModels(data.models)
+          setDefaultModel(data.defaultModel)
+
+          // Set initial selection: stored preference > default from server
+          const storedModel = getStoredModel()
+          const initialModel =
+            storedModel && data.models.some((m) => m.id === storedModel)
+              ? storedModel
+              : data.defaultModel
+
+          setSelectedModel(initialModel)
+          onModelChange?.(initialModel)
+        } else {
+          throw new Error('No models available')
+        }
+      } catch (err) {
+        if (!mounted) return
+        console.error('[model-selector] Error fetching models:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load models')
+        // Set a fallback
+        setModels([{ id: 'default', name: 'Default Model' }])
+        setSelectedModel('default')
+        setDefaultModel('default')
+      } finally {
+        if (mounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchModels()
+
+    return () => {
+      mounted = false
+    }
+  }, [onModelChange])
+
+  function handleModelSelect(modelId: string) {
+    setSelectedModel(modelId)
+    setStoredModel(modelId)
+    onModelChange?.(modelId)
+  }
+
+  if (isLoading) {
+    return (
+      <div className={cn('flex items-center gap-2 text-xs text-primary-500', className)}>
+        <HugeiconsIcon icon={ArtificialIntelligence02Icon} size={14} />
+        <span>Loading...</span>
+      </div>
+    )
+  }
+
+  if (error || models.length === 0) {
+    return null // Hide on error
+  }
+
+  const selectedModelInfo = models.find((m) => m.id === selectedModel)
+  const displayName = selectedModelInfo?.name || 'Select Model'
+
+  // Don't show selector if there's only one model
+  if (models.length === 1) {
+    return (
+      <div className={cn('flex items-center gap-2 text-xs text-primary-500', className)}>
+        <HugeiconsIcon icon={ArtificialIntelligence02Icon} size={14} />
+        <span className="font-[450]">{displayName}</span>
+      </div>
+    )
+  }
+
+  return (
+    <MenuRoot>
+      <MenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            'h-7 gap-2 px-2 text-xs font-[450] text-primary-600 hover:text-primary-900 hover:bg-primary-100',
+            className,
+          )}
+        >
+          <HugeiconsIcon icon={ArtificialIntelligence02Icon} size={14} />
+          <span>{displayName}</span>
+        </Button>
+      </MenuTrigger>
+      <MenuContent side="top" align="start">
+        {models.map((model) => (
+          <MenuItem
+            key={model.id}
+            onClick={() => handleModelSelect(model.id)}
+            className="justify-between min-w-[180px]"
+          >
+            <span>{model.name}</span>
+            {selectedModel === model.id && (
+              <HugeiconsIcon
+                icon={Tick02Icon}
+                size={14}
+                className="text-primary-600"
+              />
+            )}
+          </MenuItem>
+        ))}
+      </MenuContent>
+    </MenuRoot>
+  )
+}
