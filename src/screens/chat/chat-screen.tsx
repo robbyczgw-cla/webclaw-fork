@@ -754,6 +754,18 @@ export function ChatScreen({
         open={showShortcutsHelp}
         onOpenChange={setShowShortcutsHelp}
       />
+      <SearchDialog
+        open={showSearchDialog}
+        onOpenChange={setShowSearchDialog}
+        mode={searchMode}
+        currentMessages={displayMessages}
+        onResultClick={(result: SearchResult) => {
+          setShowSearchDialog(false)
+          if (result.sessionKey) {
+            navigate({ to: '/chat/$sessionKey', params: { sessionKey: result.sessionKey } })
+          }
+        }}
+      />
     </div>
   )
 }
