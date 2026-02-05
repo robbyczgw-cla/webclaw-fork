@@ -48,7 +48,6 @@ export async function chatCompletion(
   messages: ChatMessage[],
   options: LlmClientOptions & {
     maxCompletionTokens?: number
-    temperature?: number
   },
 ): Promise<string> {
   const {
@@ -57,7 +56,6 @@ export async function chatCompletion(
     model = DEFAULT_MODEL,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxCompletionTokens = 100,
-    temperature = 0.7,
   } = options
 
   const controller = new AbortController()
@@ -74,7 +72,6 @@ export async function chatCompletion(
         model,
         messages,
         max_completion_tokens: maxCompletionTokens,
-        temperature,
       }),
       signal: controller.signal,
     })
@@ -122,7 +119,6 @@ export async function generateSessionTitle(
     {
       ...options,
       maxCompletionTokens: 25,
-      temperature: 0.7,
     },
   )
 
@@ -157,7 +153,6 @@ Rules:
     {
       ...options,
       maxCompletionTokens: 150,
-      temperature: 0.8,
     },
   )
 
