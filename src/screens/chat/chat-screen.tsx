@@ -554,6 +554,10 @@ export function ChatScreen({
       content: a.base64,
     }))
 
+    // Start SSE streaming BEFORE sending — events arrive immediately after chat.send
+    startStream(sessionKey)
+    streamStart()
+
     fetch('/api/send', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -569,10 +573,6 @@ export function ChatScreen({
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(await readError(res))
-        // Start SSE streaming for real-time deltas
-        startStream(sessionKey)
-        // Also start fast-polling as fallback
-        streamStart()
       })
       .catch((err) => {
         const messageText = err instanceof Error ? err.message : String(err)
