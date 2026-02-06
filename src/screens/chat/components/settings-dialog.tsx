@@ -71,10 +71,10 @@ type SettingsDialogProps = {
 }
 
 const textSizeOptions = [
-  { value: '14px', label: 'Small' },
-  { value: '16px', label: 'Medium' },
-  { value: '18px', label: 'Large' },
-  { value: '20px', label: 'Extra Large' },
+  { value: '14px', label: 'S' },
+  { value: '16px', label: 'M' },
+  { value: '18px', label: 'L' },
+  { value: '20px', label: 'XL' },
 ] as const
 
 type TextSizeValue = (typeof textSizeOptions)[number]['value']
@@ -315,8 +315,8 @@ export function SettingsDialog({
                 >
                   {textSizeOptions.map((option) => (
                     <TabsTab key={option.value} value={option.value}>
-                      <span className="tabular-nums">
-                        {option.label} ({option.value})
+                      <span className="tabular-nums text-xs">
+                        {option.label}
                       </span>
                     </TabsTab>
                   ))}
