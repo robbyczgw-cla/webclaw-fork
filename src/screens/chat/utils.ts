@@ -73,12 +73,15 @@ export function getMessageTimestamp(message: GatewayMessage): number {
 }
 
 const CHANNEL_PATTERNS = [':telegram:', ':discord:', ':signal:', ':whatsapp:', ':slack:', ':imessage:']
+const PROTECTED_KEYS = ['agent:main:main', 'main']
 
 /**
- * Channel-bound sessions (Telegram DM, Discord channel, etc.) should not be
- * deletable — they are long-running and tied to external chat surfaces.
+ * Channel-bound sessions (Telegram DM, Discord channel, etc.) and the primary
+ * agent session should not be deletable — they are long-running and tied to
+ * external chat surfaces or are the main conversation session.
  */
 export function isProtectedSession(key: string): boolean {
+  if (PROTECTED_KEYS.includes(key)) return true
   return CHANNEL_PATTERNS.some((pattern) => key.includes(pattern))
 }
 
