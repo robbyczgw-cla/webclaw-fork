@@ -187,11 +187,13 @@ function MessageItemComponent({
   return (
     <div
       ref={wrapperRef}
-      style={
-        typeof wrapperScrollMarginTop === 'number'
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: 'auto 120px',
+        ...(typeof wrapperScrollMarginTop === 'number'
           ? { scrollMarginTop: `${wrapperScrollMarginTop}px` }
-          : undefined
-      }
+          : undefined),
+      }}
       className={cn(
         'group flex flex-col gap-1',
         wrapperClassName,
@@ -214,6 +216,8 @@ function MessageItemComponent({
               key={idx}
               src={`data:${img.source.media_type};base64,${img.source.data}`}
               alt={`Attachment ${idx + 1}`}
+              loading="lazy"
+              decoding="async"
               className="max-w-[300px] max-h-[300px] rounded-lg object-cover"
             />
           ))}

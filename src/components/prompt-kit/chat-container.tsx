@@ -46,7 +46,7 @@ function ChatContainerShell({
       className={cn('relative flex flex-1 min-h-0 flex-col', className)}
     >
       <ScrollAreaViewport
-        className="relative"
+        className="relative will-change-transform"
         ref={viewportRef}
         {...viewportProps}
       />

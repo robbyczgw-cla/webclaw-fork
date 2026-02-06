@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -54,9 +56,18 @@ import type { HistoryResponse, GatewayMessage } from './types'
 import { cn } from '@/lib/utils'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { useSwipeGesture } from './hooks/use-swipe-gesture'
-import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog'
-import { SearchDialog } from '@/components/search-dialog'
 import type { SearchResult } from '@/hooks/use-search'
+
+const KeyboardShortcutsDialog = lazy(() =>
+  import('@/components/keyboard-shortcuts-dialog').then((m) => ({
+    default: m.KeyboardShortcutsDialog,
+  })),
+)
+const SearchDialog = lazy(() =>
+  import('@/components/search-dialog').then((m) => ({
+    default: m.SearchDialog,
+  })),
+)
 
 type ChatScreenProps = {
   activeFriendlyId: string
@@ -907,7 +918,7 @@ export function ChatScreen({
             )}
             <div
               className={cn(
-                'fixed inset-y-0 left-0 z-50 w-[300px] transition-transform duration-200',
+                'fixed inset-y-0 left-0 z-50 w-[300px] transition-transform duration-150',
                 isSidebarCollapsed ? '-translate-x-full' : 'translate-x-0',
               )}
               {...sidebarCloseSwipeHandlers}
@@ -960,24 +971,32 @@ export function ChatScreen({
         </main>
       </div>
 
-      <KeyboardShortcutsDialog
-        open={showShortcutsHelp}
-        onOpenChange={setShowShortcutsHelp}
-      />
-      <SearchDialog
-        open={showSearchDialog}
-        onOpenChange={setShowSearchDialog}
-        sessions={sessions}
-        currentFriendlyId={activeFriendlyId}
-        currentSessionKey={activeSessionKey}
-        mode={searchMode}
-        onJumpToMessage={(result: SearchResult) => {
-          setShowSearchDialog(false)
-          if (result.friendlyId) {
-            navigate({ to: '/chat/$sessionKey', params: { sessionKey: result.friendlyId } })
-          }
-        }}
-      />
+      {showShortcutsHelp && (
+        <Suspense fallback={null}>
+          <KeyboardShortcutsDialog
+            open={showShortcutsHelp}
+            onOpenChange={setShowShortcutsHelp}
+          />
+        </Suspense>
+      )}
+      {showSearchDialog && (
+        <Suspense fallback={null}>
+          <SearchDialog
+            open={showSearchDialog}
+            onOpenChange={setShowSearchDialog}
+            sessions={sessions}
+            currentFriendlyId={activeFriendlyId}
+            currentSessionKey={activeSessionKey}
+            mode={searchMode}
+            onJumpToMessage={(result: SearchResult) => {
+              setShowSearchDialog(false)
+              if (result.friendlyId) {
+                navigate({ to: '/chat/$sessionKey', params: { sessionKey: result.friendlyId } })
+              }
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

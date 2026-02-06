@@ -7,14 +7,21 @@ import {
   Search01Icon,
 } from '@hugeicons/core-free-icons'
 import { AnimatePresence, motion } from 'motion/react'
-import { memo, useState } from 'react'
-import { SettingsDialog } from './settings-dialog'
+import { lazy, memo, Suspense, useState } from 'react'
 import type { SessionMeta } from '../types'
 import { useQueryClient } from '@tanstack/react-query'
 import { chatQueryKeys } from '../chat-queries'
 import type { HistoryResponse } from '../types'
 import { exportConversation, type ExportFormat } from '../utils/export-conversation'
-import { SessionExportDialog } from './sidebar/session-export-dialog'
+
+const SettingsDialog = lazy(() =>
+  import('./settings-dialog').then((m) => ({ default: m.SettingsDialog })),
+)
+const SessionExportDialog = lazy(() =>
+  import('./sidebar/session-export-dialog').then((m) => ({
+    default: m.SessionExportDialog,
+  })),
+)
 import {
   TooltipContent,
   TooltipProvider,
@@ -395,16 +402,20 @@ function ChatSidebarComponent({
         </motion.div>
       </div>
 
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        pathsLoading={pathsLoading}
-        pathsError={pathsError}
-        paths={paths}
-        onClose={closeSettings}
-        onCopySessionsDir={copySessionsDir}
-        onCopyStorePath={copyStorePath}
-      />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsDialog
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            pathsLoading={pathsLoading}
+            pathsError={pathsError}
+            paths={paths}
+            onClose={closeSettings}
+            onCopySessionsDir={copySessionsDir}
+            onCopyStorePath={copyStorePath}
+          />
+        </Suspense>
+      )}
 
       <SessionRenameDialog
         open={renameDialogOpen}
@@ -422,13 +433,17 @@ function ChatSidebarComponent({
         onCancel={() => setDeleteDialogOpen(false)}
       />
 
-      <SessionExportDialog
-        open={exportDialogOpen}
-        onOpenChange={setExportDialogOpen}
-        sessionTitle={exportSessionTitle}
-        onExport={handleExport}
-        onCancel={() => setExportDialogOpen(false)}
-      />
+      {exportDialogOpen && (
+        <Suspense fallback={null}>
+          <SessionExportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            sessionTitle={exportSessionTitle}
+            onExport={handleExport}
+            onCancel={() => setExportDialogOpen(false)}
+          />
+        </Suspense>
+      )}
     </motion.aside>
   )
 }

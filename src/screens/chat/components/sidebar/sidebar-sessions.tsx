@@ -16,7 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import { SessionItem } from './session-item'
 import type { SessionMeta } from '../../types'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { chatQueryKeys } from '../../chat-queries'
 import { readError, isProtectedSession } from '../../utils'
@@ -158,6 +158,8 @@ export const SidebarSessions = memo(function SidebarSessions({
   onDelete,
   onExport,
 }: SidebarSessionsProps) {
+  // Defer session list updates to prevent jank while typing/streaming
+  const deferredSessions = useDeferredValue(sessions)
   const queryClient = useQueryClient()
   const [pinnedSessionKeys, setPinnedSessionKeys] = useState<Array<string>>(() =>
     readPinnedSessionKeys(),
@@ -173,10 +175,10 @@ export const SidebarSessions = memo(function SidebarSessions({
     () => new Set(pinnedSessionKeys),
     [pinnedSessionKeys],
   )
-  const pinnedSessions = sessions.filter((session) =>
+  const pinnedSessions = deferredSessions.filter((session) =>
     pinnedSessionKeySet.has(session.key),
   )
-  const unpinnedSessions = sessions.filter(
+  const unpinnedSessions = deferredSessions.filter(
     (session) => !pinnedSessionKeySet.has(session.key),
   )
   const showDivider = pinnedSessions.length > 0 && unpinnedSessions.length > 0
@@ -199,8 +201,8 @@ export const SidebarSessions = memo(function SidebarSessions({
   }, [unpinnedSessions])
 
   const selectedSessions = useMemo(
-    () => sessions.filter((session) => selectedSessionKeys.has(session.key)),
-    [selectedSessionKeys, sessions],
+    () => deferredSessions.filter((session) => selectedSessionKeys.has(session.key)),
+    [selectedSessionKeys, deferredSessions],
   )
   const selectedCount = selectedSessions.length
 
@@ -229,12 +231,12 @@ export const SidebarSessions = memo(function SidebarSessions({
   const handleSelectAll = useCallback(() => {
     setSelectedSessionKeys(
       new Set(
-        sessions
+        deferredSessions
           .filter((session) => !isProtectedSession(session.key))
           .map((session) => session.key),
       ),
     )
-  }, [sessions])
+  }, [deferredSessions])
 
   const handleCancelSelection = useCallback(() => {
     setSelectionMode(false)

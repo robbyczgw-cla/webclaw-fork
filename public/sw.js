@@ -104,18 +104,18 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // StaleWhileRevalidate for JS/CSS bundles
+  // Cache-first for hashed JS/CSS bundles (Vite adds content hashes)
   if (isBundle(url)) {
     event.respondWith(
       caches.open(STATIC_CACHE).then((cache) =>
         cache.match(event.request).then((cached) => {
-          const fetchPromise = fetch(event.request).then((response) => {
+          if (cached) return cached
+          return fetch(event.request).then((response) => {
             if (response.ok) {
               cache.put(event.request, response.clone())
             }
             return response
           })
-          return cached || fetchPromise
         })
       )
     )

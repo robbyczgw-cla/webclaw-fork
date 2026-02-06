@@ -170,3 +170,16 @@ code {
 .stream-fade-in {
   animation: stream-fade-in 0.25s ease-out;
 }
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .stream-fade-in {
+    animation: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
