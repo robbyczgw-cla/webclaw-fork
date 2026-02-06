@@ -73,10 +73,24 @@ export function getMessageTimestamp(message: GatewayMessage): number {
 }
 
 function deriveSessionKind(key: string): SessionKind {
-  if (key.includes(':subagent:') || key.startsWith('agent:codex:')) {
+  // Sub-agents: codex, explicit subagent, openai-spawned sessions
+  if (
+    key.includes(':subagent:') ||
+    key.startsWith('agent:codex:') ||
+    key.includes(':openai:')
+  ) {
     return 'subagent'
   }
-  if (key.startsWith('isolated:')) return 'cron'
+  // Cron/isolated sessions
+  if (key.startsWith('isolated:') || key.includes(':cron:')) return 'cron'
+  // Non-main agents (tefy, grok, etc.)
+  if (
+    key.startsWith('agent:') &&
+    !key.startsWith('agent:main:')
+  ) {
+    return 'other'
+  }
+  // Main agent chats (webchat, telegram, discord channels)
   if (key.startsWith('agent:main:')) return 'chat'
   return 'other'
 }

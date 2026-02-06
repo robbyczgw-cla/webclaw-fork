@@ -227,19 +227,23 @@ export const SidebarSessions = memo(function SidebarSessions({
         <ScrollAreaRoot className="flex-1 min-h-0">
           <ScrollAreaViewport className="min-h-0">
             <div className="flex flex-col gap-2 pl-2 pr-2">
-              {pinnedSessions.map((session) => (
-                <SessionItem
-                  key={session.key}
-                  session={session}
-                  active={session.friendlyId === activeFriendlyId}
-                  isPinned
-                  onSelect={onSelect}
-                  onTogglePin={handleTogglePin}
-                  onRename={onRename}
-                  onDelete={onDelete}
-                  onExport={onExport}
-                />
-              ))}
+              {pinnedSessions.length > 0 ? (
+                <div className="flex flex-col gap-px">
+                  {pinnedSessions.map((session) => (
+                    <SessionItem
+                      key={session.key}
+                      session={session}
+                      active={session.friendlyId === activeFriendlyId}
+                      isPinned
+                      onSelect={onSelect}
+                      onTogglePin={handleTogglePin}
+                      onRename={onRename}
+                      onDelete={onDelete}
+                      onExport={onExport}
+                    />
+                  ))}
+                </div>
+              ) : null}
               {showDivider ? (
                 <div className="my-1 border-t border-primary-200/80" />
               ) : null}
