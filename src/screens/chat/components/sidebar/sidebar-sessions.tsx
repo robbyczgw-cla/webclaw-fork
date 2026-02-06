@@ -1,7 +1,7 @@
 'use client'
 
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowRight01Icon } from '@hugeicons/core-free-icons'
+import { ArrowRight01Icon, Delete01Icon } from '@hugeicons/core-free-icons'
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -17,6 +17,9 @@ import { cn } from '@/lib/utils'
 import { SessionItem } from './session-item'
 import type { SessionMeta } from '../../types'
 import { memo, useCallback, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { chatQueryKeys } from '../../chat-queries'
+import { readError } from '../../utils'
 
 const PINNED_SESSIONS_KEY = 'opencami-pinned-sessions'
 const FOLDER_STATE_KEY = 'opencami-sidebar-folders'
@@ -28,6 +31,42 @@ const defaultFolderState: FolderState = {
   subagent: false,
   cron: false,
   other: false,
+}
+
+async function deleteSessionRequest(sessionKey: string) {
+  const query = new URLSearchParams()
+  if (sessionKey) query.set('sessionKey', sessionKey)
+  const res = await fetch(`/api/sessions?${query.toString()}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error(await readError(res))
+}
+
+async function runWithConcurrency<T>(
+  items: Array<T>,
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<Array<unknown>> {
+  const errors: Array<unknown> = []
+  let index = 0
+
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async function run() {
+      while (index < items.length) {
+        const currentIndex = index
+        index += 1
+        try {
+          await worker(items[currentIndex])
+        } catch (err) {
+          errors.push(err)
+        }
+      }
+    },
+  )
+
+  await Promise.all(runners)
+  return errors
 }
 
 function readPinnedSessionKeys(): Array<string> {
@@ -105,11 +144,16 @@ export const SidebarSessions = memo(function SidebarSessions({
   onDelete,
   onExport,
 }: SidebarSessionsProps) {
+  const queryClient = useQueryClient()
   const [pinnedSessionKeys, setPinnedSessionKeys] = useState<Array<string>>(() =>
     readPinnedSessionKeys(),
   )
   const [folderState, setFolderState] = useState<FolderState>(() =>
     readFolderState(),
+  )
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedSessionKeys, setSelectedSessionKeys] = useState<Set<string>>(
+    () => new Set(),
   )
   const pinnedSessionKeySet = useMemo(
     () => new Set(pinnedSessionKeys),
@@ -138,6 +182,64 @@ export const SidebarSessions = memo(function SidebarSessions({
     }
     return groups
   }, [unpinnedSessions])
+
+  const selectedSessions = useMemo(
+    () => sessions.filter((session) => selectedSessionKeys.has(session.key)),
+    [selectedSessionKeys, sessions],
+  )
+  const selectedCount = selectedSessions.length
+
+  const handleSelectionModeToggle = useCallback(() => {
+    setSelectionMode((prev) => {
+      if (prev) {
+        setSelectedSessionKeys(new Set())
+      }
+      return !prev
+    })
+  }, [])
+
+  const handleToggleSelect = useCallback((session: SessionMeta) => {
+    setSelectedSessionKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(session.key)) {
+        next.delete(session.key)
+      } else {
+        next.add(session.key)
+      }
+      return next
+    })
+  }, [])
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedSessionKeys(new Set(sessions.map((session) => session.key)))
+  }, [sessions])
+
+  const handleCancelSelection = useCallback(() => {
+    setSelectionMode(false)
+    setSelectedSessionKeys(new Set())
+  }, [])
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedSessions.length === 0) return
+    const confirmed = window.confirm(
+      `Delete ${selectedSessions.length} sessions? This will archive them.`,
+    )
+    if (!confirmed) return
+
+    const errors = await runWithConcurrency(
+      selectedSessions.map((session) => session.key),
+      10,
+      deleteSessionRequest,
+    )
+
+    if (errors.length > 0) {
+      console.error('[sidebar] Bulk delete failed for some sessions', errors)
+    }
+
+    setSelectionMode(false)
+    setSelectedSessionKeys(new Set())
+    void queryClient.invalidateQueries({ queryKey: chatQueryKeys.sessions })
+  }, [queryClient, selectedSessions])
 
   const handleTogglePin = useCallback((session: SessionMeta) => {
     setPinnedSessionKeys((prevKeys) => {
@@ -194,6 +296,9 @@ export const SidebarSessions = memo(function SidebarSessions({
               session={session}
               active={session.friendlyId === activeFriendlyId}
               isPinned={false}
+              selectionMode={selectionMode}
+              selected={selectedSessionKeys.has(session.key)}
+              onToggleSelect={handleToggleSelect}
               onSelect={onSelect}
               onTogglePin={handleTogglePin}
               onRename={onRename}
@@ -211,15 +316,29 @@ export const SidebarSessions = memo(function SidebarSessions({
       className="flex h-full flex-col flex-1 min-h-0 w-full"
       defaultOpen={defaultOpen}
     >
-      <CollapsibleTrigger className="w-fit pl-1.5 shrink-0 text-balance">
-        Sessions
-        <span className="opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <HugeiconsIcon
-            icon={ArrowRight01Icon}
-            className="size-3 transition-transform duration-150 group-data-panel-open:rotate-90"
-          />
-        </span>
-      </CollapsibleTrigger>
+      <div className="flex items-center justify-between pr-2 shrink-0">
+        <CollapsibleTrigger className="w-fit pl-1.5 text-balance">
+          Sessions
+          <span className="opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              className="size-3 transition-transform duration-150 group-data-panel-open:rotate-90"
+            />
+          </span>
+        </CollapsibleTrigger>
+        <button
+          type="button"
+          onClick={handleSelectionModeToggle}
+          className={cn(
+            'text-[11px] font-medium px-1.5 py-0.5 rounded-md transition-colors',
+            selectionMode
+              ? 'text-primary-900 bg-primary-200'
+              : 'text-primary-500 hover:text-primary-700 hover:bg-primary-100',
+          )}
+        >
+          {selectionMode ? 'Done' : 'Select'}
+        </button>
+      </div>
       <CollapsiblePanel
         className="w-full flex-1 min-h-0 h-auto data-starting-style:h-0 data-ending-style:h-0"
         contentClassName="flex flex-1 min-h-0 flex-col overflow-y-auto"
@@ -235,6 +354,9 @@ export const SidebarSessions = memo(function SidebarSessions({
                       session={session}
                       active={session.friendlyId === activeFriendlyId}
                       isPinned
+                      selectionMode={selectionMode}
+                      selected={selectedSessionKeys.has(session.key)}
+                      onToggleSelect={handleToggleSelect}
                       onSelect={onSelect}
                       onTogglePin={handleTogglePin}
                       onRename={onRename}
@@ -263,6 +385,9 @@ export const SidebarSessions = memo(function SidebarSessions({
                         session={session}
                         active={session.friendlyId === activeFriendlyId}
                         isPinned={false}
+                        selectionMode={selectionMode}
+                        selected={selectedSessionKeys.has(session.key)}
+                        onToggleSelect={handleToggleSelect}
                         onSelect={onSelect}
                         onTogglePin={handleTogglePin}
                         onRename={onRename}
@@ -291,6 +416,45 @@ export const SidebarSessions = memo(function SidebarSessions({
           </ScrollAreaScrollbar>
         </ScrollAreaRoot>
       </CollapsiblePanel>
+      {selectionMode ? (
+        <div className="shrink-0 border-t border-primary-200 bg-surface px-2 py-2 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-primary-600 font-medium">
+              {selectedCount} selected
+            </span>
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="text-[11px] font-medium text-primary-600 hover:text-primary-800"
+            >
+              Select all
+            </button>
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              disabled={selectedCount === 0}
+              className={cn(
+                'flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                selectedCount > 0
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-primary-100 text-primary-400 cursor-not-allowed',
+              )}
+            >
+              <HugeiconsIcon icon={Delete01Icon} size={14} strokeWidth={1.5} />
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSelection}
+              className="flex-1 inline-flex items-center justify-center rounded-md px-2 py-1.5 text-xs font-medium bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </Collapsible>
   )
 }, areSidebarSessionsEqual)

@@ -22,6 +22,9 @@ type SessionItemProps = {
   session: SessionMeta
   active: boolean
   isPinned: boolean
+  selectionMode?: boolean
+  selected?: boolean
+  onToggleSelect?: (session: SessionMeta) => void
   onSelect?: () => void
   onTogglePin: (session: SessionMeta) => void
   onRename: (session: SessionMeta) => void
@@ -33,6 +36,9 @@ function SessionItemComponent({
   session,
   active,
   isPinned,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
   onSelect,
   onTogglePin,
   onRename,
@@ -46,7 +52,15 @@ function SessionItemComponent({
     <Link
       to="/chat/$sessionKey"
       params={{ sessionKey: session.friendlyId }}
-      onClick={onSelect}
+      onClick={(event) => {
+        if (selectionMode) {
+          event.preventDefault()
+          event.stopPropagation()
+          onToggleSelect?.(session)
+          return
+        }
+        onSelect?.()
+      }}
       className={cn(
         'group inline-flex items-center justify-between',
         'w-full text-left pl-1.5 pr-0.5 h-8 rounded-lg transition-colors duration-0',
@@ -56,84 +70,106 @@ function SessionItemComponent({
           : 'bg-transparent text-primary-950 [&:hover:not(:has(button:hover))]:bg-primary-200',
       )}
     >
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-[450] line-clamp-1">
-          {isPinned ? (
-            <span className="mr-1 text-xs text-primary-700" aria-hidden="true">
-              📌
-            </span>
-          ) : null}
-          {label}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {selectionMode ? (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(event) => {
+              event.stopPropagation()
+              onToggleSelect?.(session)
+            }}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+            className={cn(
+              'size-4 rounded border border-primary-300 bg-surface text-primary-700',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+            )}
+          />
+        ) : null}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-[450] line-clamp-1">
+            {isPinned ? (
+              <span className="mr-1 text-xs text-primary-700" aria-hidden="true">
+                📌
+              </span>
+            ) : null}
+            {label}
+          </div>
         </div>
       </div>
-      <MenuRoot>
-        <MenuTrigger
-          type="button"
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-          className={cn(
-            'ml-2 inline-flex size-7 items-center justify-center rounded-md text-primary-700',
-            'opacity-0 transition-opacity group-hover:opacity-100 hover:bg-primary-200',
-            'aria-expanded:opacity-100 aria-expanded:bg-primary-200',
-          )}
-        >
-          <HugeiconsIcon
-            icon={MoreHorizontalIcon}
-            size={20}
-            strokeWidth={1.5}
-          />
-        </MenuTrigger>
-        <MenuContent side="bottom" align="end">
-          <MenuItem
+      {selectionMode ? null : (
+        <MenuRoot>
+          <MenuTrigger
+            type="button"
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              onTogglePin(session)
             }}
-            className="gap-2"
+            className={cn(
+              'ml-2 inline-flex size-7 items-center justify-center rounded-md text-primary-700',
+              'opacity-0 transition-opacity group-hover:opacity-100 hover:bg-primary-200',
+              'aria-expanded:opacity-100 aria-expanded:bg-primary-200',
+            )}
           >
-            <span className="text-xs" aria-hidden="true">
-              📌
-            </span>{' '}
-            {isPinned ? 'Unpin Session' : 'Pin Session'}
-          </MenuItem>
-          <MenuItem
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              onRename(session)
-            }}
-            className="gap-2"
-          >
-            <HugeiconsIcon icon={Pen01Icon} size={20} strokeWidth={1.5} />{' '}
-            Rename
-          </MenuItem>
-          <MenuItem
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              onExport(session)
-            }}
-            className="gap-2"
-          >
-            <HugeiconsIcon icon={Upload01Icon} size={20} strokeWidth={1.5} />{' '}
-            Export
-          </MenuItem>
-          <MenuItem
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              onDelete(session)
-            }}
-            className="text-red-700 gap-2 hover:bg-red-50/80 data-highlighted:bg-red-50/80"
-          >
-            <HugeiconsIcon icon={Delete01Icon} size={20} strokeWidth={1.5} />{' '}
-            Delete
-          </MenuItem>
-        </MenuContent>
-      </MenuRoot>
+            <HugeiconsIcon
+              icon={MoreHorizontalIcon}
+              size={20}
+              strokeWidth={1.5}
+            />
+          </MenuTrigger>
+          <MenuContent side="bottom" align="end">
+            <MenuItem
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onTogglePin(session)
+              }}
+              className="gap-2"
+            >
+              <span className="text-xs" aria-hidden="true">
+                📌
+              </span>{' '}
+              {isPinned ? 'Unpin Session' : 'Pin Session'}
+            </MenuItem>
+            <MenuItem
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onRename(session)
+              }}
+              className="gap-2"
+            >
+              <HugeiconsIcon icon={Pen01Icon} size={20} strokeWidth={1.5} />{' '}
+              Rename
+            </MenuItem>
+            <MenuItem
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onExport(session)
+              }}
+              className="gap-2"
+            >
+              <HugeiconsIcon icon={Upload01Icon} size={20} strokeWidth={1.5} />{' '}
+              Export
+            </MenuItem>
+            <MenuItem
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onDelete(session)
+              }}
+              className="text-red-700 gap-2 hover:bg-red-50/80 data-highlighted:bg-red-50/80"
+            >
+              <HugeiconsIcon icon={Delete01Icon} size={20} strokeWidth={1.5} />{' '}
+              Delete
+            </MenuItem>
+          </MenuContent>
+        </MenuRoot>
+      )}
     </Link>
   )
 }
@@ -141,6 +177,9 @@ function SessionItemComponent({
 function areSessionItemsEqual(prev: SessionItemProps, next: SessionItemProps) {
   if (prev.active !== next.active) return false
   if (prev.isPinned !== next.isPinned) return false
+  if (prev.selectionMode !== next.selectionMode) return false
+  if (prev.selected !== next.selected) return false
+  if (prev.onToggleSelect !== next.onToggleSelect) return false
   if (prev.onSelect !== next.onSelect) return false
   if (prev.onTogglePin !== next.onTogglePin) return false
   if (prev.onRename !== next.onRename) return false
