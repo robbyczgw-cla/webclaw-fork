@@ -123,13 +123,25 @@ export function ModelSelector({ className, onModelChange }: ModelSelectorProps) 
 
   const selectedModelInfo = models.find((m) => m.id === selectedModel)
   const displayName = selectedModelInfo?.name || 'Select Model'
+  // Shorter display for mobile: extract a compact alias from model name
+  const shortDisplayName = (() => {
+    if (!selectedModelInfo?.name) return displayName
+    const name = selectedModelInfo.name
+    // Remove parenthesized suffixes like "(opus46)" and trim
+    const clean = name.replace(/\s*\([^)]*\)\s*$/, '').trim()
+    // If still long, take first two words
+    const words = clean.split(/\s+/)
+    if (words.length > 3) return words.slice(0, 3).join(' ')
+    return clean
+  })()
 
   // Don't show selector if there's only one model
   if (models.length === 1) {
     return (
       <div className={cn('flex items-center gap-2 text-xs text-primary-500', className)}>
         <HugeiconsIcon icon={ArtificialIntelligence02Icon} size={14} />
-        <span className="font-[450]">{displayName}</span>
+        <span className="font-[450] md:hidden">{shortDisplayName}</span>
+        <span className="font-[450] hidden md:inline">{displayName}</span>
       </div>
     )
   }
@@ -143,7 +155,8 @@ export function ModelSelector({ className, onModelChange }: ModelSelectorProps) 
         )}
       >
         <HugeiconsIcon icon={ArtificialIntelligence02Icon} size={14} />
-        <span>{displayName}</span>
+        <span className="md:hidden">{shortDisplayName}</span>
+        <span className="hidden md:inline">{displayName}</span>
       </MenuTrigger>
       <MenuContent side="top" align="start">
         {models.map((model) => (

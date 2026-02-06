@@ -173,7 +173,7 @@ function ChatMessageListComponent({
             {/* // Keep the last exchange pinned without extra tail gap. // Account
             for space-y-6 (24px) when pinning. */}
             <div
-              className="flex flex-col space-y-6"
+              className="flex flex-col space-y-3 md:space-y-6"
               style={{ minHeight: `${Math.max(0, pinGroupMinHeight - 24)}px` }}
             >
               {displayMessages

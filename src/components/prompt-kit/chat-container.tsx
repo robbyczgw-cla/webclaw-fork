@@ -175,8 +175,8 @@ function ChatContainerContent({
       className={cn('flex w-full flex-col min-h-full', className)}
       {...props}
     >
-      <div className="mx-auto w-full max-w-full px-5 sm:max-w-[768px] sm:min-w-[400px] flex flex-col flex-1 min-h-full">
-        <div className="flex flex-col space-y-6">{children}</div>
+      <div className="mx-auto w-full max-w-full px-2 md:px-5 sm:max-w-[768px] sm:min-w-[400px] flex flex-col flex-1 min-h-full">
+        <div className="flex flex-col space-y-3 md:space-y-6">{children}</div>
       </div>
     </div>
   )

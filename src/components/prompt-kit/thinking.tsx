@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -13,10 +14,30 @@ export type ThinkingProps = {
   content: string
 }
 
+/** Returns true when viewport is below the md breakpoint (768px). */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mql = window.matchMedia('(max-width: 767px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mql.addEventListener('change', handler)
+    setIsMobile(mql.matches)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  return isMobile
+}
+
 function Thinking({ content }: ThinkingProps) {
+  const isMobile = useIsMobile()
+
   return (
     <div className="inline-flex flex-col">
-      <Collapsible>
+      <Collapsible defaultOpen={!isMobile}>
         <CollapsibleTrigger
           render={
             <Button
