@@ -33,6 +33,7 @@ type ChatComposerHelpers = {
 }
 
 const FALLBACK_SLASH_COMMANDS: Array<SlashCommand> = [
+  // Model aliases
   { command: '/haiku', description: 'Switch to Claude Haiku 4.5' },
   { command: '/sonnet', description: 'Switch to Claude Sonnet 4.5' },
   { command: '/opus', description: 'Switch to Claude Opus 4.5' },
@@ -42,11 +43,33 @@ const FALLBACK_SLASH_COMMANDS: Array<SlashCommand> = [
   { command: '/kimi', description: 'Switch to Kimi K2.5' },
   { command: '/minimax', description: 'Switch to MiniMax M2.1' },
   { command: '/grok', description: 'Switch to Grok 4.1 Fast' },
-  { command: '/new', description: 'New chat' },
+  { command: '/model', description: 'Show model picker or switch model' },
+  // Session
+  { command: '/new', description: 'New chat (optional: /new model)' },
   { command: '/reset', description: 'Reset session' },
-  { command: '/status', description: 'Show status' },
-  { command: '/reasoning', description: 'Toggle reasoning mode' },
+  { command: '/stop', description: 'Stop current generation' },
+  { command: '/compact', description: 'Compact conversation context' },
+  // Info
+  { command: '/help', description: 'Show available commands' },
+  { command: '/commands', description: 'List all commands' },
+  { command: '/status', description: 'Show session status & usage' },
+  { command: '/whoami', description: 'Show your sender ID' },
+  { command: '/context', description: 'Show context window details' },
+  { command: '/usage', description: 'Toggle usage footer (off/tokens/full/cost)' },
+  // Directives
+  { command: '/think', description: 'Set thinking level (off/low/medium/high)' },
+  { command: '/reasoning', description: 'Toggle reasoning (on/off/stream)' },
+  { command: '/verbose', description: 'Toggle verbose mode (on/full/off)' },
+  { command: '/elevated', description: 'Toggle elevated permissions (on/off/ask)' },
+  { command: '/exec', description: 'Configure exec settings' },
+  { command: '/queue', description: 'Show/configure message queue' },
+  // TTS
+  { command: '/tts', description: 'Text-to-speech (off/always/tagged/status)' },
+  // Sub-agents
+  { command: '/subagents', description: 'List/stop/log sub-agent runs' },
+  // Skills
   { command: '/followups', description: 'Show follow-up suggestions' },
+  { command: '/skill', description: 'Run a skill by name' },
 ]
 
 function ChatComposerComponent({
