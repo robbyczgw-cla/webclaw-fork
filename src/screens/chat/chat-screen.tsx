@@ -243,9 +243,11 @@ export function ChatScreen({
     (_sk: string) => {
       // Refetch history to pick up the final message from the Gateway
       void historyQuery.refetch()
+      // Refetch sessions to update token counts in the context meter
+      void queryClient.invalidateQueries({ queryKey: chatQueryKeys.sessions })
       streamFinish()
     },
-    [historyQuery, streamFinish],
+    [historyQuery, queryClient, streamFinish],
   )
   const handleStreamError = useCallback(
     (_err: string) => {

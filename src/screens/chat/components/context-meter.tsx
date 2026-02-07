@@ -7,17 +7,35 @@ type ContextMeterProps = {
   className?: string
 }
 
-/** Format a token count into a compact human-readable string (e.g. "32K", "1.2M") */
+/**
+ * Format a token count into a compact human-readable string.
+ * Examples: 0→"0", 500→"500", 1000→"1K", 1500→"1.5K",
+ * 32000→"32K", 128000→"128K", 999999→"1M", 1000000→"1M",
+ * 1200000→"1.2M", 2000000→"2M"
+ */
 function formatTokens(count: number): string {
+  if (count <= 0) return '0'
   if (count >= 1_000_000) {
     const m = count / 1_000_000
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
+    // Round to 1 decimal place; drop trailing ".0"
+    const s = m.toFixed(1)
+    return s.endsWith('.0') ? `${Math.round(m)}M` : `${s}M`
+  }
+  if (count >= 100_000) {
+    // 100K+ — show whole K (128K, 200K, 999K)
+    return `${Math.round(count / 1_000)}K`
+  }
+  if (count >= 10_000) {
+    // 10K-99K — show whole K (10K, 32K, 99K)
+    return `${Math.round(count / 1_000)}K`
   }
   if (count >= 1_000) {
+    // 1K-9.9K — show one decimal if needed (1K, 1.5K, 9.9K)
     const k = count / 1_000
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`
+    const s = k.toFixed(1)
+    return s.endsWith('.0') ? `${Math.round(k)}K` : `${s}K`
   }
-  return String(count)
+  return String(Math.round(count))
 }
 
 /** Get the color classes for the progress bar based on usage percentage */
@@ -25,13 +43,13 @@ function getMeterColor(percentage: number): {
   bar: string
   text: string
 } {
-  if (percentage >= 80) {
+  if (percentage >= 90) {
     return {
       bar: 'bg-red-500',
       text: 'text-red-600 dark:text-red-400',
     }
   }
-  if (percentage >= 50) {
+  if (percentage >= 70) {
     return {
       bar: 'bg-yellow-500',
       text: 'text-yellow-600 dark:text-yellow-400',
@@ -48,44 +66,61 @@ function ContextMeterComponent({
   contextTokens,
   className,
 }: ContextMeterProps) {
-  const { percentage, usedStr, maxStr, colors, hasData } = useMemo(() => {
-    if (
-      typeof totalTokens !== 'number' ||
-      typeof contextTokens !== 'number' ||
-      contextTokens <= 0
-    ) {
-      return {
-        percentage: 0,
-        usedStr: '',
-        maxStr: '',
-        colors: getMeterColor(0),
-        hasData: false,
+  const { percentage, usedStr, maxStr, colors, hasData, isNearlyFull } =
+    useMemo(() => {
+      // Hide when we have no context window info at all
+      if (typeof contextTokens !== 'number' || contextTokens <= 0) {
+        return {
+          percentage: 0,
+          usedStr: '',
+          maxStr: '',
+          colors: getMeterColor(0),
+          hasData: false,
+          isNearlyFull: false,
+        }
       }
-    }
 
-    const pct = Math.min(100, Math.round((totalTokens / contextTokens) * 100))
-    return {
-      percentage: pct,
-      usedStr: formatTokens(totalTokens),
-      maxStr: formatTokens(contextTokens),
-      colors: getMeterColor(pct),
-      hasData: true,
-    }
-  }, [totalTokens, contextTokens])
+      // Treat undefined/null totalTokens as 0 (new session with no messages yet)
+      const used =
+        typeof totalTokens === 'number' && totalTokens > 0 ? totalTokens : 0
+      const pct = Math.min(
+        100,
+        Math.round((used / contextTokens) * 100),
+      )
+      return {
+        percentage: pct,
+        usedStr: formatTokens(used),
+        maxStr: formatTokens(contextTokens),
+        colors: getMeterColor(pct),
+        hasData: true,
+        isNearlyFull: pct >= 95,
+      }
+    }, [totalTokens, contextTokens])
 
   if (!hasData) return null
+
+  const usedDisplay =
+    typeof totalTokens === 'number' && totalTokens > 0
+      ? totalTokens.toLocaleString()
+      : '0'
+  const maxDisplay =
+    typeof contextTokens === 'number' ? contextTokens.toLocaleString() : '0'
 
   return (
     <div
       className={cn('group relative flex items-center gap-1.5', className)}
-      title={`Context: ${totalTokens?.toLocaleString()} / ${contextTokens?.toLocaleString()} tokens (${percentage}%)`}
+      title={`Context: ${usedDisplay} / ${maxDisplay} tokens (${percentage}%)`}
     >
       {/* Compact view: bar + percentage */}
       <div className="flex items-center gap-1.5">
         {/* Progress bar */}
         <div className="w-12 h-1.5 rounded-full bg-primary-200 dark:bg-primary-700 overflow-hidden shrink-0 group-hover:h-2 transition-all">
           <div
-            className={cn('h-full rounded-full transition-all duration-300', colors.bar)}
+            className={cn(
+              'h-full rounded-full transition-all duration-500 ease-out',
+              colors.bar,
+              isNearlyFull && 'animate-pulse',
+            )}
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -94,7 +129,9 @@ function ContextMeterComponent({
         <span
           className={cn(
             'text-[10px] leading-none font-medium tabular-nums whitespace-nowrap',
-            'text-primary-500 dark:text-primary-400',
+            isNearlyFull
+              ? colors.text
+              : 'text-primary-500 dark:text-primary-400',
           )}
         >
           {usedStr}
@@ -118,8 +155,12 @@ function ContextMeterComponent({
           )}
         >
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-primary-500 dark:text-primary-400">Context window</span>
-            <span className={cn('font-semibold', colors.text)}>{percentage}%</span>
+            <span className="text-primary-500 dark:text-primary-400">
+              Context window
+            </span>
+            <span className={cn('font-semibold', colors.text)}>
+              {percentage}%
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-primary-700 dark:text-primary-300">
             <span className="font-medium">{usedStr}</span>
@@ -130,10 +171,18 @@ function ContextMeterComponent({
           {/* Wider bar in tooltip */}
           <div className="w-full h-1.5 rounded-full bg-primary-200 dark:bg-primary-700 overflow-hidden mt-1.5">
             <div
-              className={cn('h-full rounded-full transition-all duration-300', colors.bar)}
+              className={cn(
+                'h-full rounded-full transition-all duration-500 ease-out',
+                colors.bar,
+              )}
               style={{ width: `${percentage}%` }}
             />
           </div>
+          {isNearlyFull && (
+            <div className="mt-1.5 text-[10px] text-red-500 dark:text-red-400 font-medium">
+              ⚠ Context nearly full — consider /compact
+            </div>
+          )}
         </div>
       </div>
     </div>
