@@ -176,6 +176,14 @@ export function SettingsDialog({
             <div className="text-sm text-primary-800">WebClaw (beta)</div>
             <div className="flex gap-4 pt-2">
               <a
+                href="https://webclaw.dev/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary-600 hover:text-primary-900 hover:underline"
+              >
+                Website
+              </a>
+              <a
                 href="https://github.com/ibelick/webclaw"
                 target="_blank"
                 rel="noopener noreferrer"
