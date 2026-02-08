@@ -1,15 +1,7 @@
 {
   "name": "opencami",
-  "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "description": "OpenCami - A beautiful web client for OpenClaw",
-  "bin": {
-    "opencami": "./bin/opencami.js"
-  },
-  "files": [
-    "bin/",
-    "dist/"
-  ],
   "scripts": {
     "dev": "vite dev --port 3002",
     "build": "vite build",
@@ -17,27 +9,8 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier",
-    "check": "prettier --write . && eslint --fix",
-    "prepublishOnly": "npm run build"
+    "check": "prettier --write . && eslint --fix"
   },
-  "engines": {
-    "node": ">=18"
-  },
-  "keywords": [
-    "openclaw",
-    "opencami",
-    "ai",
-    "chat",
-    "web-ui",
-    "cli"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/robbyczgw-cla/opencami.git"
-  },
-  "homepage": "https://github.com/robbyczgw-cla/opencami",
-  "license": "MIT",
-  "author": "Robby (robbyczgw-cla)",
   "dependencies": {
     "@base-ui/react": "^1.1.0",
     "@capacitor/android": "^8.0.2",
@@ -89,5 +62,11 @@
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^3.0.5",
     "web-vitals": "^5.1.0"
-  }
+  },
+  "description": "OpenCami - A beautiful web client for OpenClaw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robbyczgw-cla/opencami.git"
+  },
+  "author": "Robby (robbyczgw-cla)"
 }
